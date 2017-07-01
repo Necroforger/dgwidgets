@@ -36,6 +36,9 @@ type Widget struct {
 	// keys stores the handlers keys in the order they were added
 	Keys []string
 
+	// Delete reactions after they are added
+	DeleteReactions bool
+
 	running bool
 }
 
@@ -44,12 +47,13 @@ type Widget struct {
 //    channelID: channelID to spawn the widget on
 func NewWidget(ses *discordgo.Session, channelID string, embed *discordgo.MessageEmbed) *Widget {
 	return &Widget{
-		ChannelID: channelID,
-		Ses:       ses,
-		Keys:      []string{},
-		Handlers:  map[string]WidgetHandler{},
-		Close:     make(chan bool),
-		Embed:     embed,
+		ChannelID:       channelID,
+		Ses:             ses,
+		Keys:            []string{},
+		Handlers:        map[string]WidgetHandler{},
+		Close:           make(chan bool),
+		DeleteReactions: true,
+		Embed:           embed,
 	}
 }
 
@@ -111,10 +115,12 @@ func (w *Widget) Spawn() error {
 			v(w, reaction)
 		}
 
-		go func() {
-			time.Sleep(time.Millisecond * 250)
-			w.Ses.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.Name, reaction.UserID)
-		}()
+		if w.DeleteReactions {
+			go func() {
+				time.Sleep(time.Millisecond * 250)
+				w.Ses.MessageReactionRemove(reaction.ChannelID, reaction.MessageID, reaction.Emoji.Name, reaction.UserID)
+			}()
+		}
 	}
 }
 
