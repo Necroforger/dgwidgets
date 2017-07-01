@@ -2,7 +2,9 @@ package dgwidgets
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -57,6 +59,14 @@ func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 	p.Widget.Handle(NavEnd, func(w *Widget, r *discordgo.MessageReaction) {
 		if err := p.Goto(len(p.Pages) - 1); err == nil {
 			p.Update()
+		}
+	})
+	p.Widget.Handle(NavNumbers, func(w *Widget, r *discordgo.MessageReaction) {
+		if msg, err := w.QueryInput("enter the page number you would like to open", r.UserID, 10*time.Second); err == nil {
+			if n, err := strconv.Atoi(msg.Content); err == nil {
+				p.Goto(n - 1)
+				p.Update()
+			}
 		}
 	})
 
