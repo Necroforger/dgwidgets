@@ -1,5 +1,5 @@
-# dgwidgets
-Make discord widgets with embeds and reactions
+# dg-widgets
+Make widgets with embeds and reactions
 
 ![img](https://i.imgur.com/viJc9Cm.gif)
 

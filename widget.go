@@ -151,9 +151,6 @@ func (w *Widget) Running() bool {
 // UpdateEmbed updates the embed object and edits the original message
 //    embed: New embed object to replace w.Embed
 func (w *Widget) UpdateEmbed(embed *discordgo.MessageEmbed) (*discordgo.Message, error) {
-	if !w.Running() {
-		return nil, ErrNotRunning
-	}
 	if w.Message == nil {
 		return nil, ErrNilMessage
 	}

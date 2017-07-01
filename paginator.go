@@ -88,8 +88,8 @@ func (p *Paginator) Spawn() error {
 		if p.ColourWhenDone >= 0 {
 			if page, err := p.Page(); err == nil {
 				page.Color = p.ColourWhenDone
+				p.Update()
 			}
-			p.Update()
 		}
 	}()
 
