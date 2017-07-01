@@ -23,7 +23,7 @@ func (s *discordgo.Session, m *discordgo.Message) {
 	p.Widget.NavigationTimeout = time.Minute * 5
 
 	// Add a custom handler for the gun reaction.
-	p.Widget.Handle("🔫", func(w *widgets.Widget, r *discordgo.MessageReaction) {
+	p.Widget.Handle("🔫", func(w *dgwidgets.Widget, r *discordgo.MessageReaction) {
 		s.ChannelMessageSend(m.ChannelID, "Bang!")
 	})
 
