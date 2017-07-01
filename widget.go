@@ -140,6 +140,39 @@ func (w *Widget) Handle(emojiName string, handler WidgetHandler) error {
 	return nil
 }
 
+// QueryInput querys the user with ID `id` for input
+//    prompt : Question prompt
+//    userID : UserID to get message from
+//    timeout: How long to wait for the user's response
+func (w *Widget) QueryInput(prompt string, userID string, timeout time.Duration) (*discordgo.Message, error) {
+	msg, err := w.Ses.ChannelMessageSend(w.ChannelID, "<@"+userID+">,  "+prompt)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		w.Ses.ChannelMessageDelete(msg.ChannelID, msg.ID)
+	}()
+
+	timeoutChan := make(chan int)
+	go func() {
+		time.Sleep(timeout)
+		timeoutChan <- 0
+	}()
+
+	for {
+		select {
+		case usermsg := <-nextMessageCreateC(w.Ses):
+			if usermsg.Author.ID != userID {
+				continue
+			}
+			w.Ses.ChannelMessageDelete(usermsg.ChannelID, usermsg.ID)
+			return usermsg.Message, nil
+		case <-timeoutChan:
+			return nil, errors.New("Timed out")
+		}
+	}
+}
+
 // Running returns w.running
 func (w *Widget) Running() bool {
 	w.Lock()
@@ -155,13 +188,4 @@ func (w *Widget) UpdateEmbed(embed *discordgo.MessageEmbed) (*discordgo.Message,
 		return nil, ErrNilMessage
 	}
 	return w.Ses.ChannelMessageEditEmbed(w.ChannelID, w.Message.ID, embed)
-}
-
-// NextMessageReactionAddC returns a channel for the next MessageReactionAdd event
-func nextMessageReactionAddC(s *discordgo.Session) chan *discordgo.MessageReactionAdd {
-	out := make(chan *discordgo.MessageReactionAdd)
-	s.AddHandlerOnce(func(_ *discordgo.Session, e *discordgo.MessageReactionAdd) {
-		out <- e
-	})
-	return out
 }

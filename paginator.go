@@ -4,15 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/bwmarrin/discordgo"
-)
-
-// Navigation emojis
-var (
-	NavRight     = "➡"
-	NavLeft      = "⬅"
-	NavEnd       = "⏩"
-	NavBeginning = "⏪"
+	"github.com/Necroforger/discordgo"
 )
 
 // Paginator provides a method for creating a navigatable embed
