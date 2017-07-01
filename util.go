@@ -1,6 +1,6 @@
 package dgwidgets
 
-import "github.com/Necroforger/discordgo"
+import "github.com/bwmarrin/discordgo"
 
 // NextMessageCreateC returns a channel for the next MessageCreate event
 func nextMessageCreateC(s *discordgo.Session) chan *discordgo.MessageCreate {

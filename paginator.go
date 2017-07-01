@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Necroforger/discordgo"
+	"github.com/bwmarrin/discordgo"
 )
 
 // Paginator provides a method for creating a navigatable embed
