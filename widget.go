@@ -24,12 +24,12 @@ type WidgetHandler func(*Widget, *discordgo.MessageReaction)
 // Accepts custom handlers for reactions.
 type Widget struct {
 	sync.Mutex
-	Embed             *discordgo.MessageEmbed
-	Message           *discordgo.Message
-	Ses               *discordgo.Session
-	ChannelID         string
-	NavigationTimeout time.Duration
-	Close             chan bool
+	Embed     *discordgo.MessageEmbed
+	Message   *discordgo.Message
+	Ses       *discordgo.Session
+	ChannelID string
+	Timeout   time.Duration
+	Close     chan bool
 
 	// Handlers binds emoji names to functions
 	Handlers map[string]WidgetHandler
@@ -88,11 +88,11 @@ func (w *Widget) Spawn() error {
 	var reaction *discordgo.MessageReaction
 	for {
 		// Navigation timeout enabled
-		if w.NavigationTimeout != 0 {
+		if w.Timeout != 0 {
 			select {
 			case k := <-nextMessageReactionAddC(w.Ses):
 				reaction = k.MessageReaction
-			case <-time.After(startTime.Add(w.NavigationTimeout).Sub(time.Now())):
+			case <-time.After(startTime.Add(w.Timeout).Sub(time.Now())):
 				return nil
 			case <-w.Close:
 				return nil

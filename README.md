@@ -20,7 +20,7 @@ func (s *discordgo.Session, m *discordgo.Message) {
 	p.ColourWhenDone = 0xffff
 
 	// Stop listening for reaction events after five minutes
-	p.Widget.NavigationTimeout = time.Minute * 5
+	p.Widget.Timeout = time.Minute * 5
 
 	// Add a custom handler for the gun reaction.
 	p.Widget.Handle("🔫", func(w *dgwidgets.Widget, r *discordgo.MessageReaction) {
