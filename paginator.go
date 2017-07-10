@@ -21,9 +21,10 @@ type Paginator struct {
 
 	Ses *discordgo.Session
 
-	DeleteMessageWhenDone bool
-	ColourWhenDone        int
-
+	DeleteMessageWhenDone   bool
+	ColourWhenDone          int
+	DeleteReactionsWhenDone bool
+	
 	running bool
 }
 
@@ -36,9 +37,10 @@ func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 		Pages: []*discordgo.MessageEmbed{},
 		Index: 0,
 		Loop:  false,
-		DeleteMessageWhenDone: false,
-		ColourWhenDone:        -1,
-		Widget:                NewWidget(ses, channelID, nil),
+		DeleteMessageWhenDone:   false,
+		DeleteReactionsWhenDone: false,
+		ColourWhenDone:          -1,
+		Widget:                  NewWidget(ses, channelID, nil),
 	}
 
 	p.Widget.Handle(NavBeginning, func(w *Widget, r *discordgo.MessageReaction) {
@@ -91,6 +93,15 @@ func (p *Paginator) Spawn() error {
 			if page, err := p.Page(); err == nil {
 				page.Color = p.ColourWhenDone
 				p.Update()
+			}
+		}
+		// Delete reactions when done
+		if p.DeleteReactionsWhenDone {					
+			message, err := p.Widget.Ses.ChannelMessage(p.Widget.Message.ChannelID, p.Widget.Message.ID)
+			if err == nil {
+				for _, emoji := range message.Reactions {	
+					p.Ses.MessageReactionRemove(message.ChannelID, message.ID, emoji.Emoji.Name, message.Author.ID)
+				}
 			}
 		}
 	}()
