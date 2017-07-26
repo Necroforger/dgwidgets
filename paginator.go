@@ -21,14 +21,15 @@ type Paginator struct {
 
 	Ses *discordgo.Session
 
-	DeleteMessageWhenDone bool
-	ColourWhenDone        int
+	DeleteMessageWhenDone   bool
+	DeleteReactionsWhenDone bool
+	ColourWhenDone          int
 
 	running bool
 }
 
 // NewPaginator returns a new Paginator
-//    ses      : Dream session
+//    ses      : discordgo session
 //    channelID: channelID to spawn the paginator on
 func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 	p := &Paginator{
@@ -36,11 +37,17 @@ func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 		Pages: []*discordgo.MessageEmbed{},
 		Index: 0,
 		Loop:  false,
-		DeleteMessageWhenDone: false,
-		ColourWhenDone:        -1,
-		Widget:                NewWidget(ses, channelID, nil),
+		DeleteMessageWhenDone:   false,
+		DeleteReactionsWhenDone: false,
+		ColourWhenDone:          -1,
+		Widget:                  NewWidget(ses, channelID, nil),
 	}
+	p.addHandlers()
 
+	return p
+}
+
+func (p *Paginator) addHandlers() {
 	p.Widget.Handle(NavBeginning, func(w *Widget, r *discordgo.MessageReaction) {
 		if err := p.Goto(0); err == nil {
 			p.Update()
@@ -69,8 +76,6 @@ func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 			}
 		}
 	})
-
-	return p
 }
 
 // Spawn spawns the paginator in channel p.ChannelID
@@ -78,19 +83,32 @@ func (p *Paginator) Spawn() error {
 	if p.Running() {
 		return ErrAlreadyRunning
 	}
+	p.Lock()
 	p.running = true
+	p.Unlock()
 
 	defer func() {
+		p.Lock()
 		p.running = false
+		p.Unlock()
+
 		// Delete Message when done
 		if p.DeleteMessageWhenDone && p.Widget.Message != nil {
 			p.Ses.ChannelMessageDelete(p.Widget.Message.ChannelID, p.Widget.Message.ID)
-		} else
-		// Change colour when done
-		if p.ColourWhenDone >= 0 {
+		} else if p.ColourWhenDone >= 0 {
 			if page, err := p.Page(); err == nil {
 				page.Color = p.ColourWhenDone
 				p.Update()
+			}
+		}
+
+		// Delete reactions when done
+		if p.DeleteReactionsWhenDone {
+			message, err := p.Widget.Ses.ChannelMessage(p.Widget.Message.ChannelID, p.Widget.Message.ID)
+			if err == nil {
+				for _, emoji := range message.Reactions {
+					p.Ses.MessageReactionRemove(message.ChannelID, message.ID, emoji.Emoji.Name, message.Author.ID)
+				}
 			}
 		}
 	}()

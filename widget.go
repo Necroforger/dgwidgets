@@ -112,7 +112,7 @@ func (w *Widget) Spawn() error {
 		}
 
 		if v, ok := w.Handlers[reaction.Emoji.Name]; ok {
-			v(w, reaction)
+			go v(w, reaction)
 		}
 
 		if w.DeleteReactions {
