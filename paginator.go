@@ -103,13 +103,8 @@ func (p *Paginator) Spawn() error {
 		}
 
 		// Delete reactions when done
-		if p.DeleteReactionsWhenDone {
-			message, err := p.Widget.Ses.ChannelMessage(p.Widget.Message.ChannelID, p.Widget.Message.ID)
-			if err == nil {
-				for _, emoji := range message.Reactions {
-					p.Ses.MessageReactionRemove(message.ChannelID, message.ID, emoji.Emoji.Name, message.Author.ID)
-				}
-			}
+		if p.DeleteReactionsWhenDone && p.Widget.Message != nil {
+			p.Ses.MessageReactionsRemoveAll(p.Widget.ChannelID, p.Widget.Message.ID)
 		}
 	}()
 
