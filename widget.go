@@ -62,7 +62,7 @@ func NewWidget(ses *discordgo.Session, m *discordgo.MessageCreate, channelID str
 		Close:           make(chan bool),
 		DeleteReactions: true,
 		LockToUser:      false,
-		Spawner: 		 m.Author.ID,
+		Spawner:         m.Author.ID,
 		Embed:           embed,
 	}
 }
