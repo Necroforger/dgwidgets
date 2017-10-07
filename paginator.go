@@ -24,14 +24,17 @@ type Paginator struct {
 	DeleteMessageWhenDone   bool
 	ColourWhenDone          int
 	DeleteReactionsWhenDone bool
-	
+
+	lockToUser bool
+
 	running bool
 }
 
 // NewPaginator returns a new Paginator
 //    ses      : Dream session
+// 	  m        : MessageCreate event of the message that invokes this
 //    channelID: channelID to spawn the paginator on
-func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
+func NewPaginator(ses *discordgo.Session, m *discordgo.MessageCreate, channelID string) *Paginator {
 	p := &Paginator{
 		Ses:   ses,
 		Pages: []*discordgo.MessageEmbed{},
@@ -40,7 +43,7 @@ func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 		DeleteMessageWhenDone:   false,
 		DeleteReactionsWhenDone: false,
 		ColourWhenDone:          -1,
-		Widget:                  NewWidget(ses, channelID, nil),
+		Widget:                  NewWidget(ses, m, channelID, nil),
 	}
 
 	p.Widget.Handle(NavBeginning, func(w *Widget, r *discordgo.MessageReaction) {
@@ -75,6 +78,12 @@ func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 	return p
 }
 
+// LockToUser causes the widget to ignore reactions added by people
+// that didn't spawn the widget
+func (p *Paginator) LockToUser() {
+	p.Widget.LockToUser = true
+}
+
 // Spawn spawns the paginator in channel p.ChannelID
 func (p *Paginator) Spawn() error {
 	if p.Running() {
@@ -96,10 +105,10 @@ func (p *Paginator) Spawn() error {
 			}
 		}
 		// Delete reactions when done
-		if p.DeleteReactionsWhenDone {					
+		if p.DeleteReactionsWhenDone {
 			message, err := p.Widget.Ses.ChannelMessage(p.Widget.Message.ChannelID, p.Widget.Message.ID)
 			if err == nil {
-				for _, emoji := range message.Reactions {	
+				for _, emoji := range message.Reactions {
 					p.Ses.MessageReactionRemove(message.ChannelID, message.ID, emoji.Emoji.Name, message.Author.ID)
 				}
 			}

@@ -27,6 +27,7 @@ type Widget struct {
 	Embed     *discordgo.MessageEmbed
 	Message   *discordgo.Message
 	Ses       *discordgo.Session
+	MsgCreate *discordgo.MessageCreate
 	ChannelID string
 	Timeout   time.Duration
 	Close     chan bool
@@ -39,20 +40,28 @@ type Widget struct {
 	// Delete reactions after they are added
 	DeleteReactions bool
 
+	// Allows only the spawner to use it
+	LockToUser bool
+
+	// Spawner is the ID of the user tha spawned it
+	Spawner string
+
 	running bool
 }
 
 // NewWidget returns a pointer to a Widget object
 //    ses      : discordgo session
 //    channelID: channelID to spawn the widget on
-func NewWidget(ses *discordgo.Session, channelID string, embed *discordgo.MessageEmbed) *Widget {
+func NewWidget(ses *discordgo.Session, m *discordgo.MessageCreate, channelID string, embed *discordgo.MessageEmbed) *Widget {
 	return &Widget{
 		ChannelID:       channelID,
 		Ses:             ses,
+		MsgCreate:       m,
 		Keys:            []string{},
 		Handlers:        map[string]WidgetHandler{},
 		Close:           make(chan bool),
 		DeleteReactions: true,
+		LockToUser:      false,
 		Embed:           embed,
 	}
 }
@@ -106,8 +115,8 @@ func (w *Widget) Spawn() error {
 			}
 		}
 
-		// Ignore reactions sent by bot
-		if reaction.MessageID != w.Message.ID || w.Ses.State.User.ID == reaction.UserID {
+		// Ignore reactions sent by bot, or if locked to user, by others
+		if reaction.MessageID != w.Message.ID || w.Ses.State.User.ID == reaction.UserID || (w.LockToUser && reaction.UserID != w.MsgCreate.Author.ID) {
 			continue
 		}
 
