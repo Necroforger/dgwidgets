@@ -14,4 +14,5 @@ const (
 	NavBeginning   = "⏪"
 	NavNumbers     = "🔢"
 	NavInformation = "ℹ"
+	NavSave        = "💾"
 )

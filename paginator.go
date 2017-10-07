@@ -22,17 +22,17 @@ type Paginator struct {
 	Ses *discordgo.Session
 
 	DeleteMessageWhenDone   bool
-	ColourWhenDone          int
 	DeleteReactionsWhenDone bool
-
+	ColourWhenDone          int
+	
 	lockToUser bool
 
 	running bool
 }
 
 // NewPaginator returns a new Paginator
-//    ses      : Dream session
-// 	  m        : MessageCreate event of the message that invokes this
+//    ses      : discordgo session
+//    m		   : discordgo Message event
 //    channelID: channelID to spawn the paginator on
 func NewPaginator(ses *discordgo.Session, m *discordgo.MessageCreate, channelID string) *Paginator {
 	p := &Paginator{
@@ -45,7 +45,12 @@ func NewPaginator(ses *discordgo.Session, m *discordgo.MessageCreate, channelID 
 		ColourWhenDone:          -1,
 		Widget:                  NewWidget(ses, m, channelID, nil),
 	}
+	p.addHandlers()
 
+	return p
+}
+
+func (p *Paginator) addHandlers() {
 	p.Widget.Handle(NavBeginning, func(w *Widget, r *discordgo.MessageReaction) {
 		if err := p.Goto(0); err == nil {
 			p.Update()
@@ -74,8 +79,6 @@ func NewPaginator(ses *discordgo.Session, m *discordgo.MessageCreate, channelID 
 			}
 		}
 	})
-
-	return p
 }
 
 // LockToUser causes the widget to ignore reactions added by people
@@ -89,29 +92,28 @@ func (p *Paginator) Spawn() error {
 	if p.Running() {
 		return ErrAlreadyRunning
 	}
+	p.Lock()
 	p.running = true
+	p.Unlock()
 
 	defer func() {
+		p.Lock()
 		p.running = false
+		p.Unlock()
+
 		// Delete Message when done
 		if p.DeleteMessageWhenDone && p.Widget.Message != nil {
 			p.Ses.ChannelMessageDelete(p.Widget.Message.ChannelID, p.Widget.Message.ID)
-		} else
-		// Change colour when done
-		if p.ColourWhenDone >= 0 {
+		} else if p.ColourWhenDone >= 0 {
 			if page, err := p.Page(); err == nil {
 				page.Color = p.ColourWhenDone
 				p.Update()
 			}
 		}
+
 		// Delete reactions when done
-		if p.DeleteReactionsWhenDone {
-			message, err := p.Widget.Ses.ChannelMessage(p.Widget.Message.ChannelID, p.Widget.Message.ID)
-			if err == nil {
-				for _, emoji := range message.Reactions {
-					p.Ses.MessageReactionRemove(message.ChannelID, message.ID, emoji.Emoji.Name, message.Author.ID)
-				}
-			}
+		if p.DeleteReactionsWhenDone && p.Widget.Message != nil {
+			p.Ses.MessageReactionsRemoveAll(p.Widget.ChannelID, p.Widget.Message.ID)
 		}
 	}()
 
