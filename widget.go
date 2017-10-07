@@ -62,6 +62,7 @@ func NewWidget(ses *discordgo.Session, m *discordgo.MessageCreate, channelID str
 		Close:           make(chan bool),
 		DeleteReactions: true,
 		LockToUser:      false,
+		Spawner: 		 m.Author.ID,
 		Embed:           embed,
 	}
 }
@@ -116,7 +117,7 @@ func (w *Widget) Spawn() error {
 		}
 
 		// Ignore reactions sent by bot, or if locked to user, by others
-		if reaction.MessageID != w.Message.ID || w.Ses.State.User.ID == reaction.UserID || (w.LockToUser && reaction.UserID != w.MsgCreate.Author.ID) {
+		if reaction.MessageID != w.Message.ID || w.Ses.State.User.ID == reaction.UserID || (w.LockToUser && reaction.UserID != w.Spawner) {
 			continue
 		}
 
