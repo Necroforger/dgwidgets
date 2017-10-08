@@ -25,6 +25,8 @@ type Paginator struct {
 	DeleteReactionsWhenDone bool
 	ColourWhenDone          int
 
+	lockToUser bool
+
 	running bool
 }
 

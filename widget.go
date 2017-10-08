@@ -38,6 +38,8 @@ type Widget struct {
 
 	// Delete reactions after they are added
 	DeleteReactions bool
+	// Only allow listed users to use reactions.
+	UserWhitelist []string
 
 	running bool
 }
@@ -55,6 +57,20 @@ func NewWidget(ses *discordgo.Session, channelID string, embed *discordgo.Messag
 		DeleteReactions: true,
 		Embed:           embed,
 	}
+}
+
+// isUserAllowed returns true if the user is allowed
+// to use this widget.
+func (w *Widget) isUserAllowed(userID string) bool {
+	if w.UserWhitelist == nil || len(w.UserWhitelist) == 0 {
+		return true
+	}
+	for _, user := range w.UserWhitelist {
+		if user == userID {
+			return true
+		}
+	}
+	return false
 }
 
 // Spawn spawns the widget in channel w.ChannelID
@@ -112,7 +128,9 @@ func (w *Widget) Spawn() error {
 		}
 
 		if v, ok := w.Handlers[reaction.Emoji.Name]; ok {
-			go v(w, reaction)
+			if w.isUserAllowed(reaction.UserID) {
+				go v(w, reaction)
+			}
 		}
 
 		if w.DeleteReactions {
