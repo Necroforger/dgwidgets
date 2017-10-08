@@ -2,7 +2,6 @@ package dgwidgets
 
 import (
 	"errors"
-	"regexp"
 	"sync"
 	"time"
 
@@ -16,9 +15,6 @@ var (
 	ErrNilMessage       = errors.New("err: Message is nil")
 	ErrNilEmbed         = errors.New("err: embed is nil")
 	ErrNotRunning       = errors.New("err: not running")
-	ErrInvalidID        = errors.New("err: not a valid user ID")
-
-	userIDRegex = regexp.MustCompile("^[0-9]{18}$")
 )
 
 // WidgetHandler ...
@@ -31,7 +27,6 @@ type Widget struct {
 	Embed     *discordgo.MessageEmbed
 	Message   *discordgo.Message
 	Ses       *discordgo.Session
-	MsgCreate *discordgo.MessageCreate
 	ChannelID string
 	Timeout   time.Duration
 	Close     chan bool
@@ -43,12 +38,8 @@ type Widget struct {
 
 	// Delete reactions after they are added
 	DeleteReactions bool
-
-	// Allows only the spawner to use it
-	LockToUser bool
-
-	// Spawner is the ID of the user that spawned it
-	Spawner string
+	// Only allow listed users to use reactions.
+	UserWhitelist []string
 
 	running bool
 }
@@ -64,9 +55,22 @@ func NewWidget(ses *discordgo.Session, channelID string, embed *discordgo.Messag
 		Handlers:        map[string]WidgetHandler{},
 		Close:           make(chan bool),
 		DeleteReactions: true,
-		LockToUser:      false,
 		Embed:           embed,
 	}
+}
+
+// isUserAllowed returns true if the user is allowed
+// to use this widget.
+func (w *Widget) isUserAllowed(userID string) bool {
+	if w.UserWhitelist == nil || len(w.UserWhitelist) == 0 {
+		return true
+	}
+	for _, user := range w.UserWhitelist {
+		if user == userID {
+			return true
+		}
+	}
+	return false
 }
 
 // Spawn spawns the widget in channel w.ChannelID
@@ -118,13 +122,15 @@ func (w *Widget) Spawn() error {
 			}
 		}
 
-		// Ignore reactions sent by bot, or if locked to user, by others
-		if reaction.MessageID != w.Message.ID || w.Ses.State.User.ID == reaction.UserID || (w.LockToUser && reaction.UserID != w.Spawner) {
+		// Ignore reactions sent by bot
+		if reaction.MessageID != w.Message.ID || w.Ses.State.User.ID == reaction.UserID {
 			continue
 		}
 
 		if v, ok := w.Handlers[reaction.Emoji.Name]; ok {
-			go v(w, reaction)
+			if w.isUserAllowed(reaction.UserID) {
+				go v(w, reaction)
+			}
 		}
 
 		if w.DeleteReactions {

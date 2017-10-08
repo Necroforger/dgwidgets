@@ -80,26 +80,6 @@ func (p *Paginator) addHandlers() {
 	})
 }
 
-// LockToUser causes the widget to ignore reactions added by people
-// that didn't spawn the widget
-func (p *Paginator) LockToUser(id string) error {
-	if !userIDRegex.MatchString(id) {
-		return ErrInvalidID
-	}
-
-	p.Widget.LockToUser = true
-	p.Widget.Spawner = id
-
-	return nil
-}
-
-// UnlockFromUser opens the widget to be affected by
-// reactions from others
-func (p *Paginator) UnlockFromUser() {
-	p.Widget.LockToUser = false
-	p.Widget.Spawner = ""
-}
-
 // Spawn spawns the paginator in channel p.ChannelID
 func (p *Paginator) Spawn() error {
 	if p.Running() {
