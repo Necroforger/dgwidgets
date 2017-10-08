@@ -32,9 +32,8 @@ type Paginator struct {
 
 // NewPaginator returns a new Paginator
 //    ses      : discordgo session
-//    m		   : discordgo Message event
 //    channelID: channelID to spawn the paginator on
-func NewPaginator(ses *discordgo.Session, m *discordgo.MessageCreate, channelID string) *Paginator {
+func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 	p := &Paginator{
 		Ses:   ses,
 		Pages: []*discordgo.MessageEmbed{},
@@ -43,7 +42,7 @@ func NewPaginator(ses *discordgo.Session, m *discordgo.MessageCreate, channelID 
 		DeleteMessageWhenDone:   false,
 		DeleteReactionsWhenDone: false,
 		ColourWhenDone:          -1,
-		Widget:                  NewWidget(ses, m, channelID, nil),
+		Widget:                  NewWidget(ses, channelID, nil),
 	}
 	p.addHandlers()
 
@@ -83,8 +82,22 @@ func (p *Paginator) addHandlers() {
 
 // LockToUser causes the widget to ignore reactions added by people
 // that didn't spawn the widget
-func (p *Paginator) LockToUser() {
+func (p *Paginator) LockToUser(id string) error {
+	if !userIDRegex.MatchString(id) {
+		return ErrInvalidID
+	}
+
 	p.Widget.LockToUser = true
+	p.Widget.Spawner = id
+
+	return nil
+}
+
+// UnlockFromUser opens the widget to be affected by
+// reactions from others
+func (p *Paginator) UnlockFromUser() {
+	p.Widget.LockToUser = false
+	p.Widget.Spawner = ""
 }
 
 // Spawn spawns the paginator in channel p.ChannelID

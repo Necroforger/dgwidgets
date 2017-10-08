@@ -2,6 +2,7 @@ package dgwidgets
 
 import (
 	"errors"
+	"regexp"
 	"sync"
 	"time"
 
@@ -15,6 +16,9 @@ var (
 	ErrNilMessage       = errors.New("err: Message is nil")
 	ErrNilEmbed         = errors.New("err: embed is nil")
 	ErrNotRunning       = errors.New("err: not running")
+	ErrInvalidID        = errors.New("err: not a valid user ID")
+
+	userIDRegex = regexp.MustCompile("^[0-9]{18}$")
 )
 
 // WidgetHandler ...
@@ -43,7 +47,7 @@ type Widget struct {
 	// Allows only the spawner to use it
 	LockToUser bool
 
-	// Spawner is the ID of the user tha spawned it
+	// Spawner is the ID of the user that spawned it
 	Spawner string
 
 	running bool
@@ -52,17 +56,15 @@ type Widget struct {
 // NewWidget returns a pointer to a Widget object
 //    ses      : discordgo session
 //    channelID: channelID to spawn the widget on
-func NewWidget(ses *discordgo.Session, m *discordgo.MessageCreate, channelID string, embed *discordgo.MessageEmbed) *Widget {
+func NewWidget(ses *discordgo.Session, channelID string, embed *discordgo.MessageEmbed) *Widget {
 	return &Widget{
 		ChannelID:       channelID,
 		Ses:             ses,
-		MsgCreate:       m,
 		Keys:            []string{},
 		Handlers:        map[string]WidgetHandler{},
 		Close:           make(chan bool),
 		DeleteReactions: true,
 		LockToUser:      false,
-		Spawner:         m.Author.ID,
 		Embed:           embed,
 	}
 }
