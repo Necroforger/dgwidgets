@@ -1,6 +1,7 @@
 package dgwidgets
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -25,7 +26,7 @@ type Paginator struct {
 	DeleteReactionsWhenDone bool
 	ColourWhenDone          int
 
-	LockToUser bool
+	lockToUser bool
 	CallerID   string
 
 	running bool
@@ -34,11 +35,10 @@ type Paginator struct {
 // NewPaginator returns a new Paginator
 //    ses      : discordgo session
 //    channelID: channelID to spawn the paginator on
-func NewPaginator(ses *discordgo.Session, channelID, userID string) *Paginator {
+func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 	p := &Paginator{
 		Ses:            ses,
 		Pages:          []*discordgo.MessageEmbed{},
-		CallerID:       userID,
 		ColourWhenDone: -1,
 		Widget:         NewWidget(ses, channelID, nil),
 	}
@@ -108,7 +108,7 @@ func (p *Paginator) Spawn() error {
 		}
 	}()
 
-	if p.LockToUser {
+	if p.lockToUser {
 		p.Widget.UserWhitelist = append(p.Widget.UserWhitelist, p.CallerID)
 	}
 
@@ -222,4 +222,13 @@ func (p *Paginator) SetPageFooters() {
 			Text: fmt.Sprintf("#[%d / %d]", index+1, len(p.Pages)),
 		}
 	}
+}
+
+func (p *Paginator) LockToUser(userID string) error {
+	if userID == "" {
+		return errors.New("userID can't be empty")
+	}
+	p.lockToUser = true
+	p.CallerID = userID
+	return nil
 }
