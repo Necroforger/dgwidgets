@@ -25,7 +25,7 @@ type Paginator struct {
 	DeleteReactionsWhenDone bool
 	ColourWhenDone          int
 
-	lockToUser bool
+	LockToUser bool
 
 	running bool
 }
@@ -35,12 +35,13 @@ type Paginator struct {
 //    channelID: channelID to spawn the paginator on
 func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
 	p := &Paginator{
-		Ses:   ses,
-		Pages: []*discordgo.MessageEmbed{},
-		Index: 0,
-		Loop:  false,
+		Ses:                     ses,
+		Pages:                   []*discordgo.MessageEmbed{},
+		Index:                   0,
+		Loop:                    false,
 		DeleteMessageWhenDone:   false,
 		DeleteReactionsWhenDone: false,
+		LockToUser:              true,
 		ColourWhenDone:          -1,
 		Widget:                  NewWidget(ses, channelID, nil),
 	}
@@ -192,7 +193,9 @@ func (p *Paginator) Update() error {
 	if p.Widget.Message == nil {
 		return ErrNilMessage
 	}
-
+	if p.Widget.RefreshAfterAction && p.Widget.ticker != nil {
+		_ = p.Widget.RefreshTimeout() // ignore error because ticker will always be present
+	}
 	page, err := p.Page()
 	if err != nil {
 		return err

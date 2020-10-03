@@ -15,6 +15,7 @@ var (
 	ErrNilMessage       = errors.New("err: Message is nil")
 	ErrNilEmbed         = errors.New("err: embed is nil")
 	ErrNotRunning       = errors.New("err: not running")
+	ErrTickerNotSet     = errors.New("err: Timeout ticker is not set")
 )
 
 // WidgetHandler ...
@@ -38,10 +39,13 @@ type Widget struct {
 
 	// Delete reactions after they are added
 	DeleteReactions bool
+	// Refresh timer after action on a widget
+	RefreshAfterAction bool
 	// Only allow listed users to use reactions.
 	UserWhitelist []string
 
 	running bool
+	ticker  *time.Ticker
 }
 
 // NewWidget returns a pointer to a Widget object
@@ -87,7 +91,10 @@ func (w *Widget) Spawn() error {
 		return ErrNilEmbed
 	}
 
-	startTime := time.Now()
+	if w.Timeout != 0 {
+		w.ticker = time.NewTicker(w.Timeout)
+		defer w.ticker.Stop()
+	}
 
 	// Create initial message.
 	msg, err := w.Ses.ChannelMessageSendEmbed(w.ChannelID, w.Embed)
@@ -108,7 +115,7 @@ func (w *Widget) Spawn() error {
 			select {
 			case k := <-nextMessageReactionAddC(w.Ses):
 				reaction = k.MessageReaction
-			case <-time.After(startTime.Add(w.Timeout).Sub(time.Now())):
+			case <-w.ticker.C:
 				return nil
 			case <-w.Close:
 				return nil
@@ -160,7 +167,7 @@ func (w *Widget) Handle(emojiName string, handler WidgetHandler) error {
 	return nil
 }
 
-// QueryInput querys the user with ID `id` for input
+// QueryInput queries the user with ID `id` for input
 //    prompt : Question prompt
 //    userID : UserID to get message from
 //    timeout: How long to wait for the user's response
@@ -181,14 +188,14 @@ func (w *Widget) QueryInput(prompt string, userID string, timeout time.Duration)
 
 	for {
 		select {
-		case usermsg := <-nextMessageCreateC(w.Ses):
-			if usermsg.Author.ID != userID {
+		case userMsg := <-nextMessageCreateC(w.Ses):
+			if userMsg.Author.ID != userID {
 				continue
 			}
-			w.Ses.ChannelMessageDelete(usermsg.ChannelID, usermsg.ID)
-			return usermsg.Message, nil
+			w.Ses.ChannelMessageDelete(userMsg.ChannelID, userMsg.ID)
+			return userMsg.Message, nil
 		case <-timeoutChan:
-			return nil, errors.New("Timed out")
+			return nil, errors.New("timed out")
 		}
 	}
 }
@@ -208,4 +215,31 @@ func (w *Widget) UpdateEmbed(embed *discordgo.MessageEmbed) (*discordgo.Message,
 		return nil, ErrNilMessage
 	}
 	return w.Ses.ChannelMessageEditEmbed(w.ChannelID, w.Message.ID, embed)
+}
+
+// Reset resets timeout ticker by duration. Returns ErrTickerNotSet when ticker is nil
+//    d: New ticker duration
+func (w *Widget) Reset(d time.Duration) error {
+	if w.ticker != nil {
+		w.Lock()
+		w.ticker.Reset(d)
+		w.Unlock()
+		return nil
+	}
+	return ErrTickerNotSet
+}
+
+// Stop stops timeout ticker. Returns ErrTickerNotSet when ticker is nil
+func (w *Widget) Stop() error {
+	if w.ticker != nil {
+		w.Lock()
+		w.ticker.Stop()
+		w.Unlock()
+	}
+	return ErrTickerNotSet
+}
+
+// RefreshTimeout refreshes timeout ticker by Widget's timeout. Returns ErrTickerNotSet when ticker is nil
+func (w *Widget) RefreshTimeout() error {
+	return w.Reset(w.Timeout)
 }
