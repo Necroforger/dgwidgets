@@ -26,6 +26,7 @@ type Paginator struct {
 	ColourWhenDone          int
 
 	LockToUser bool
+	CallerID   string
 
 	running bool
 }
@@ -33,17 +34,13 @@ type Paginator struct {
 // NewPaginator returns a new Paginator
 //    ses      : discordgo session
 //    channelID: channelID to spawn the paginator on
-func NewPaginator(ses *discordgo.Session, channelID string) *Paginator {
+func NewPaginator(ses *discordgo.Session, channelID, userID string) *Paginator {
 	p := &Paginator{
-		Ses:                     ses,
-		Pages:                   []*discordgo.MessageEmbed{},
-		Index:                   0,
-		Loop:                    false,
-		DeleteMessageWhenDone:   false,
-		DeleteReactionsWhenDone: false,
-		LockToUser:              true,
-		ColourWhenDone:          -1,
-		Widget:                  NewWidget(ses, channelID, nil),
+		Ses:            ses,
+		Pages:          []*discordgo.MessageEmbed{},
+		CallerID:       userID,
+		ColourWhenDone: -1,
+		Widget:         NewWidget(ses, channelID, nil),
 	}
 	p.addHandlers()
 
@@ -110,6 +107,10 @@ func (p *Paginator) Spawn() error {
 			p.Ses.MessageReactionsRemoveAll(p.Widget.ChannelID, p.Widget.Message.ID)
 		}
 	}()
+
+	if p.LockToUser {
+		p.Widget.UserWhitelist = append(p.Widget.UserWhitelist, p.CallerID)
+	}
 
 	page, err := p.Page()
 	if err != nil {
