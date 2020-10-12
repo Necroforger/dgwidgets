@@ -244,6 +244,7 @@ func (w *Widget) RefreshTimeout() error {
 	return w.Reset(w.Timeout)
 }
 
+// LockToUsers adds defined userIDs to the UserWhitelist locking the widget to them
 func (w *Widget) LockToUsers(userIDs ...string) error {
 	if len(userIDs) == 0 {
 		return errors.New("userID can't be empty")
