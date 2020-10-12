@@ -1,7 +1,6 @@
 package dgwidgets
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -25,9 +24,6 @@ type Paginator struct {
 	DeleteMessageWhenDone   bool
 	DeleteReactionsWhenDone bool
 	ColourWhenDone          int
-
-	lockToUser bool
-	CallerID   string
 
 	running bool
 }
@@ -107,10 +103,6 @@ func (p *Paginator) Spawn() error {
 			p.Ses.MessageReactionsRemoveAll(p.Widget.ChannelID, p.Widget.Message.ID)
 		}
 	}()
-
-	if p.lockToUser {
-		p.Widget.UserWhitelist = append(p.Widget.UserWhitelist, p.CallerID)
-	}
 
 	page, err := p.Page()
 	if err != nil {
@@ -222,13 +214,4 @@ func (p *Paginator) SetPageFooters() {
 			Text: fmt.Sprintf("#[%d / %d]", index+1, len(p.Pages)),
 		}
 	}
-}
-
-func (p *Paginator) LockToUser(userID string) error {
-	if userID == "" {
-		return errors.New("userID can't be empty")
-	}
-	p.lockToUser = true
-	p.CallerID = userID
-	return nil
 }

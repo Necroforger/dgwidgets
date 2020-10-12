@@ -243,3 +243,11 @@ func (w *Widget) Stop() error {
 func (w *Widget) RefreshTimeout() error {
 	return w.Reset(w.Timeout)
 }
+
+func (w *Widget) LockToUsers(userIDs ...string) error {
+	if len(userIDs) == 0 {
+		return errors.New("userID can't be empty")
+	}
+	w.UserWhitelist = append(w.UserWhitelist, userIDs...)
+	return nil
+}
