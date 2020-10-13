@@ -24,17 +24,17 @@ func nextMessageReactionAddC(s *discordgo.Session) chan *discordgo.MessageReacti
 
 // EmbedsFromString splits a string into a slice of MessageEmbeds.
 //     txt     : text to split
-//     chunklen: How long the text in each embed should be
+//     chunkLen: How long the text in each embed should be
 //               (if set to 0 or less, it defaults to 2048)
-func EmbedsFromString(txt string, chunklen int) []*discordgo.MessageEmbed {
-	if chunklen <= 0 {
-		chunklen = 2048
+func EmbedsFromString(txt string, chunkLen int) []*discordgo.MessageEmbed {
+	if chunkLen <= 0 {
+		chunkLen = 2048
 	}
 
-	embeds := []*discordgo.MessageEmbed{}
-	for i := 0; i < int((float64(len(txt))/float64(chunklen))+0.5); i++ {
-		start := i * chunklen
-		end := start + chunklen
+	var embeds []*discordgo.MessageEmbed
+	for i := 0; i < int((float64(len(txt))/float64(chunkLen))+0.5); i++ {
+		start := i * chunkLen
+		end := start + chunkLen
 		if end > len(txt) {
 			end = len(txt)
 		}
